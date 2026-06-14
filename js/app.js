@@ -249,7 +249,7 @@ toggle.querySelectorAll(".toggle-opt").forEach((btn) => {
     document.getElementById("orcamento-hint").textContent =
       estado.tipo === "aluguel"
         ? "Valor máximo do aluguel mensal (R$). Deixe em branco para qualquer valor."
-        : "Valor máximo de compra (R$). Deixe em branco para qualquer valor.";
+        : "Valor máximo de venda (R$). Deixe em branco para qualquer valor.";
     document.getElementById("orcamento").placeholder =
       estado.tipo === "aluguel" ? "Ex.: 3500,00" : "Ex.: 800000,00";
   });
@@ -290,7 +290,7 @@ let imovelSelecionado = null;
 
 function resumoPerfil() {
   return [
-    `Tipo de negócio: ${estado.tipo === "aluguel" ? "Aluguel" : "Compra"}`,
+    `Tipo de negócio: ${estado.tipo === "aluguel" ? "Aluguel" : "Venda"}`,
     `Segurança mínima desejada: ${estado.segurancaMin ? ROTULO_SEG[estado.segurancaMin] : "qualquer"}`,
     `Raio de busca: até ${estado.raioKm} km do ponto de interesse`,
     `Orçamento máximo: ${estado.orcamentoMax === null ? "qualquer valor" : "R$ " + formatBRL(estado.orcamentoMax)}`,
