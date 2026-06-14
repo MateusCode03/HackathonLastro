@@ -2,9 +2,10 @@
    SeguraSP — estilos
    ============================================================ */
 :root {
-  --baixo: #1ca35a;   /* verde  — baixo risco / mais seguro */
-  --medio: #e8a200;   /* amarelo— médio risco */
-  --alto:  #d63b3b;   /* vermelho — alto risco */
+  /* Cores por NÍVEL DE SEGURANÇA: alta = verde (seguro), baixa = vermelho */
+  --alta:  #1ca35a;   /* verde   — segurança alta (poucos furtos) */
+  --media: #e8a200;   /* amarelo — segurança média */
+  --baixa: #d63b3b;   /* vermelho— segurança baixa (muitos furtos) */
   --bg:    #f4f6f9;
   --card:  #ffffff;
   --ink:   #1f2937;
@@ -84,24 +85,85 @@ body {
 }
 .hint { margin: 0 0 12px; font-size: 12.5px; color: var(--muted); }
 
-.check {
+.slider-label { display: block; font-size: 14px; margin-bottom: 6px; }
+input[type="range"] { width: 100%; accent-color: var(--brand); }
+
+/* Toggle lateral aluguel / compra */
+.toggle-negocio {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 6px;
+  background: #eef2f7;
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+}
+.toggle-opt {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 10px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: all .15s;
 }
-.check:hover { background: #f8fafc; }
-.check small { color: var(--muted); }
-.check .dot { width: 12px; height: 12px; border-radius: 50%; }
-.level-baixo .dot { background: var(--baixo); }
-.level-medio .dot { background: var(--medio); }
-.level-alto  .dot { background: var(--alto); }
+.toggle-opt.ativo {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: var(--shadow);
+}
 
-.slider-label { display: block; font-size: 14px; margin-bottom: 6px; }
-input[type="range"] { width: 100%; accent-color: var(--brand); }
+/* Lista (select) de segurança */
+.select-filtro {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* Caixa float de orçamento */
+.input-money {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.input-money span {
+  padding: 0 10px;
+  color: var(--muted);
+  font-weight: 600;
+  background: #f8fafc;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+.input-money input {
+  border: none;
+  padding: 10px;
+  font-size: 15px;
+  width: 100%;
+  outline: none;
+}
+
+/* Botão Buscar — gatilho do output */
+.btn-buscar {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  padding: 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: var(--shadow);
+  transition: background .15s;
+}
+.btn-buscar:hover { background: #0f2350; }
 
 .btn-ghost {
   margin-top: 10px;
@@ -141,9 +203,9 @@ input[type="range"] { width: 100%; accent-color: var(--brand); }
 }
 .legend span { display: flex; align-items: center; gap: 6px; }
 .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-.sw.baixo { background: var(--baixo); }
-.sw.medio { background: var(--medio); }
-.sw.alto  { background: var(--alto); }
+.sw.alta  { background: var(--alta); }
+.sw.media { background: var(--media); }
+.sw.baixa { background: var(--baixa); }
 
 /* ---------- Lista de resultados ---------- */
 .results { overflow-y: auto; }
@@ -157,9 +219,9 @@ input[type="range"] { width: 100%; accent-color: var(--brand); }
   box-shadow: var(--shadow);
   border-left: 5px solid var(--line);
 }
-.imovel-card.baixo { border-left-color: var(--baixo); }
-.imovel-card.medio { border-left-color: var(--medio); }
-.imovel-card.alto  { border-left-color: var(--alto); }
+.imovel-card.alta  { border-left-color: var(--alta); }
+.imovel-card.media { border-left-color: var(--media); }
+.imovel-card.baixa { border-left-color: var(--baixa); }
 .imovel-card h3 { margin: 0 0 6px; font-size: 15px; }
 .imovel-meta { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
 .imovel-preco { font-size: 18px; font-weight: 700; color: var(--brand); }
@@ -174,9 +236,9 @@ input[type="range"] { width: 100%; accent-color: var(--brand); }
   color: #fff;
   margin-bottom: 8px;
 }
-.badge.baixo { background: var(--baixo); }
-.badge.medio { background: var(--medio); }
-.badge.alto  { background: var(--alto); }
+.badge.alta  { background: var(--alta); }
+.badge.media { background: var(--media); }
+.badge.baixa { background: var(--baixa); }
 
 .card-footer {
   display: flex;
@@ -253,7 +315,7 @@ input[type="range"] { width: 100%; accent-color: var(--brand); }
   position: fixed;
   bottom: 24px; left: 50%;
   transform: translateX(-50%);
-  background: var(--baixo);
+  background: var(--alta);
   color: #fff;
   padding: 12px 22px;
   border-radius: 999px;
@@ -271,6 +333,6 @@ input[type="range"] { width: 100%; accent-color: var(--brand); }
   border: 2px solid #fff;
   box-shadow: 0 0 4px rgba(0,0,0,.4);
 }
-.pin-imovel.baixo { background: var(--baixo); }
-.pin-imovel.medio { background: var(--medio); }
-.pin-imovel.alto  { background: var(--alto); }
+.pin-imovel.alta  { background: var(--alta); }
+.pin-imovel.media { background: var(--media); }
+.pin-imovel.baixa { background: var(--baixa); }

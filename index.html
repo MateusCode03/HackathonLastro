@@ -29,27 +29,31 @@
   <main class="layout">
     <!-- ============ PAINEL DE FILTROS ============ -->
     <aside class="sidebar">
-      <!-- Filtro 1: Segurança -->
+      <!-- Filtro 0: Tipo de negócio (toggle lateral aluguel / compra) -->
       <section class="filter-card">
-        <h2><span class="num">1</span> Segurança da região</h2>
-        <p class="hint">Furtos por 100 mil habitantes (dados SSP-SP + IBGE).</p>
-        <label class="check level-baixo">
-          <input type="checkbox" id="lvl-baixo" checked />
-          <span class="dot"></span> Baixo risco <small>(&lt; 1.500 / 100 mil)</small>
-        </label>
-        <label class="check level-medio">
-          <input type="checkbox" id="lvl-medio" checked />
-          <span class="dot"></span> Médio risco <small>(1.500 – 3.000)</small>
-        </label>
-        <label class="check level-alto">
-          <input type="checkbox" id="lvl-alto" checked />
-          <span class="dot"></span> Alto risco <small>(&gt; 3.000)</small>
-        </label>
+        <h2><span class="num">1</span> Tipo de negócio</h2>
+        <div class="toggle-negocio" id="toggle-negocio">
+          <button type="button" class="toggle-opt ativo" data-tipo="aluguel">🔑 Aluguel</button>
+          <button type="button" class="toggle-opt" data-tipo="compra">🏠 Compra</button>
+        </div>
+      </section>
+
+      <!-- Filtro 1: Segurança (lista) -->
+      <section class="filter-card">
+        <h2><span class="num">2</span> Segurança da região</h2>
+        <p class="hint">Baseada em furtos por 100 mil habitantes (SSP-SP + IBGE).</p>
+        <label class="slider-label" for="seguranca">Nível mínimo de segurança</label>
+        <select id="seguranca" class="select-filtro">
+          <option value="">Qualquer nível</option>
+          <option value="alta">🟢 Alta — região mais segura</option>
+          <option value="media">🟡 Média</option>
+          <option value="baixa">🔴 Baixa — região menos segura</option>
+        </select>
       </section>
 
       <!-- Filtro 2: Localização -->
       <section class="filter-card">
-        <h2><span class="num">2</span> Localização</h2>
+        <h2><span class="num">3</span> Localização</h2>
         <p class="hint">Arraste o <strong>📍 pin</strong> no mapa para seu ponto de interesse e defina o raio.</p>
         <label class="slider-label">
           Raio máximo: <strong><span id="raio-valor">5</span> km</strong>
@@ -58,15 +62,18 @@
         <button id="reset-pin" class="btn-ghost" type="button">Centralizar pin em SP</button>
       </section>
 
-      <!-- Filtro 3: Orçamento -->
+      <!-- Filtro 3: Orçamento (caixa float) -->
       <section class="filter-card">
-        <h2><span class="num">3</span> Orçamento</h2>
-        <p class="hint">Valor máximo do aluguel mensal.</p>
-        <label class="slider-label">
-          Até <strong>R$ <span id="orcamento-valor">15.000</span></strong> / mês
-        </label>
-        <input type="range" id="orcamento" min="1000" max="15000" value="15000" step="100" />
+        <h2><span class="num">4</span> Orçamento</h2>
+        <p class="hint" id="orcamento-hint">Valor máximo do aluguel mensal (R$). Deixe em branco para qualquer valor.</p>
+        <div class="input-money">
+          <span>R$</span>
+          <input type="number" id="orcamento" min="0" step="0.01" placeholder="Ex.: 3500,00" inputmode="decimal" />
+        </div>
       </section>
+
+      <!-- Botão de busca: o output só aparece após clicar aqui -->
+      <button id="buscar" class="btn-buscar" type="button">🔎 Buscar imóveis</button>
 
       <p class="data-note">
         ⚠️ Dados de furto são de <strong>referência</strong> (ordem de grandeza SSP-SP/IBGE) e
@@ -78,10 +85,10 @@
     <section class="map-wrap">
       <div id="map"></div>
       <div class="legend">
-        <strong>Nível de furto</strong>
-        <span><i class="sw baixo"></i> Baixo</span>
-        <span><i class="sw medio"></i> Médio</span>
-        <span><i class="sw alto"></i> Alto</span>
+        <strong>Segurança da região</strong>
+        <span><i class="sw alta"></i> Alta (poucos furtos)</span>
+        <span><i class="sw media"></i> Média</span>
+        <span><i class="sw baixa"></i> Baixa (muitos furtos)</span>
       </div>
     </section>
 

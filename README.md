@@ -10,17 +10,18 @@ Esse lead que prioriza segurança costuma ser de **médio-alto padrão**, com de
 
 ## 💡 A solução
 
-Uma única tela que combina **3 filtros** e, de quebra, **captura o perfil do lead**:
+Uma única tela que combina **4 filtros** e, de quebra, **captura o perfil do lead**:
 
 | # | Filtro | Como funciona |
 |---|--------|---------------|
-| 1 | **Segurança** | Ranqueia regiões por **furtos a cada 100 mil habitantes** em 3 níveis: **baixo**, **médio** e **alto** risco (verde / amarelo / vermelho). |
-| 2 | **Localização** | A pessoa **arrasta um pin** ("boneco") no mapa para o ponto de interesse e escolhe o **raio máximo** (1–20 km). Só aparecem imóveis dentro do raio. |
-| 3 | **Orçamento** | Slider de **valor máximo** de aluguel mensal. |
+| 1 | **Tipo de negócio** | Botão lateral (toggle) para alternar entre **Aluguel** e **Compra**. |
+| 2 | **Segurança** | Lista (dropdown) com **Alta**, **Média** ou **Baixa** — segurança mínima desejada da região, calculada por **furtos a cada 100 mil habitantes**. |
+| 3 | **Localização** | A pessoa **arrasta um pin** ("boneco") no mapa para o ponto de interesse e escolhe o **raio máximo** (1–20 km). Só aparecem imóveis dentro do raio. |
+| 4 | **Orçamento** | Caixa numérica (float) onde se digita **qualquer valor máximo**. |
 
-Os três filtros são aplicados em conjunto e atualizam o mapa e a lista em tempo real.
+Os filtros são aplicados em conjunto. **O resultado só aparece quando o usuário clica em "🔎 Buscar imóveis"** — nada é filtrado automaticamente.
 
-Ao clicar em **"Tenho interesse"**, o sistema registra o lead **junto com o perfil de busca** (níveis de segurança escolhidos, raio, orçamento e ponto) — entregando à imobiliária um lead com **perfil já mapeado**.
+Ao clicar em **"Tenho interesse"**, o sistema registra o lead **junto com o perfil de busca** (tipo, segurança, raio, orçamento e ponto) — entregando à imobiliária um lead com **perfil já mapeado**.
 
 ## 🧮 Como o nível de segurança é calculado
 
@@ -28,13 +29,13 @@ Ao clicar em **"Tenho interesse"**, o sistema registra o lead **junto com o perf
 furtos por 100 mil hab. = (furtos no ano / população) × 100.000
 ```
 
-| Nível | Faixa (furtos / 100 mil hab.) |
-|-------|-------------------------------|
-| 🟢 Baixo risco | menor que 1.500 |
-| 🟡 Médio risco | 1.500 a 3.000 |
-| 🔴 Alto risco | maior que 3.000 |
+| Furtos / 100 mil hab. | Nível de segurança |
+|-----------------------|--------------------|
+| menor que 1.500 | 🟢 **Alta** (região mais segura) |
+| 1.500 a 3.000 | 🟡 **Média** |
+| maior que 3.000 | 🔴 **Baixa** (região menos segura) |
 
-Os limiares são configuráveis no topo de [js/app.js](js/app.js) (`SEGURANCA_LIMIARES`).
+> Atenção: **segurança e furto são inversos** — menos furtos = mais segurança. Os limiares são configuráveis no topo de [js/app.js](js/app.js) (`SEGURANCA_LIMIARES`).
 
 > ⚠️ **Sobre os dados:** os valores de furto são de **referência**, em ordem de grandeza baseada em dados públicos da **SSP-SP** + população do **IBGE**, e os imóveis são **simulados** para a demonstração. A arquitetura está pronta para plugar as bases oficiais. Observação metodológica: distritos centrais/comerciais (Sé, República) têm taxa de furto por habitante alta por causa da grande população flutuante.
 
@@ -65,7 +66,8 @@ HackathonLastro/
 │   ├── distritos-sp.js   # distritos de SP: população, furtos, furto/100k
 │   └── imoveis.js        # catálogo simulado de imóveis
 ├── main.py               # servidor local opcional
-└── README.md
+├── README.md
+└── CLAUDE.md             # guia técnico do projeto (memória para devs)
 ```
 
 ## 🚧 Próximos passos

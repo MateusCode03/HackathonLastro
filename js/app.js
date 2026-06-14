@@ -1,20 +1,35 @@
 /* ============================================================
    SeguraSP — lógica do app
-   Mapa (Leaflet/OSM) + 3 filtros combinados + captura de lead.
+   Mapa (Leaflet/OSM) + filtros + captura de lead.
+
+   IMPORTANTE (requisito do projeto): a lista de imóveis (o "output")
+   só é gerada quando o usuário clica em "Buscar imóveis". Mexer nos
+   filtros NÃO filtra automaticamente — apenas o botão Buscar aplica.
    ============================================================ */
 
 /* ---------- Configuração ---------- */
 const SP_CENTRO = [-23.5805, -46.6500];
 
 // Limiares de ranqueamento por FURTOS / 100 MIL HABITANTES.
-// Edite aqui para recalibrar os 3 níveis.
+// Edite aqui para recalibrar os 3 níveis de furto.
 const SEGURANCA_LIMIARES = {
-  baixo: 1500,   // < 1500  -> baixo risco (mais seguro)
-  medio: 3000    // 1500-3000 -> médio ; > 3000 -> alto
+  baixo: 1500, // < 1500   -> furto baixo
+  medio: 3000  // 1500-3000 -> furto médio ; > 3000 -> furto alto
 };
 
-const CORES = { baixo: "#1ca35a", medio: "#e8a200", alto: "#d63b3b" };
-const ROTULO_NIVEL = { baixo: "Baixo risco", medio: "Médio risco", alto: "Alto risco" };
+/*
+ * SEGURANÇA x FURTO (atenção, são inversos!):
+ *   furto baixo  -> segurança ALTA  (região mais segura)
+ *   furto médio  -> segurança MÉDIA
+ *   furto alto   -> segurança BAIXA (região menos segura)
+ */
+const FURTO_PARA_SEGURANCA = { baixo: "alta", medio: "media", alto: "baixa" };
+
+// Cores por nível de SEGURANÇA (verde = seguro, vermelho = inseguro).
+const CORES = { alta: "#1ca35a", media: "#e8a200", baixa: "#d63b3b" };
+const ROTULO_SEG = { alta: "Segurança alta", media: "Segurança média", baixa: "Segurança baixa" };
+// Ranking para o filtro "segurança mínima desejada".
+const RANK_SEG = { baixa: 1, media: 2, alta: 3 };
 
 /* ---------- Utilidades ---------- */
 
@@ -35,12 +50,17 @@ function furtosPor100k(d) {
   return (d.furtos_ano / d.populacao) * 100000;
 }
 
-// Classifica um distrito em baixo / medio / alto a partir da taxa.
-function nivelDoDistrito(d) {
+// Classifica o FURTO de um distrito em baixo / medio / alto a partir da taxa.
+function nivelFurto(d) {
   const taxa = furtosPor100k(d);
   if (taxa < SEGURANCA_LIMIARES.baixo) return "baixo";
   if (taxa <= SEGURANCA_LIMIARES.medio) return "medio";
   return "alto";
+}
+
+// Segurança do distrito (inverso do furto): alta / media / baixa.
+function segurancaDoDistrito(d) {
+  return FURTO_PARA_SEGURANCA[nivelFurto(d)];
 }
 
 // Distrito mais próximo de um imóvel (associação por centróide).
@@ -58,26 +78,27 @@ function distritoMaisProximo(lat, lng) {
 }
 
 function formatBRL(v) {
-  return v.toLocaleString("pt-BR");
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
 /* ---------- Pré-processamento dos imóveis ---------- */
-// Anexa a cada imóvel o distrito e o nível de segurança correspondente.
+// Anexa a cada imóvel o distrito e a segurança correspondente.
 const IMOVEIS = window.IMOVEIS.map((im) => {
   const d = distritoMaisProximo(im.lat, im.lng);
   return {
     ...im,
     distrito: d.nome,
-    nivel: nivelDoDistrito(d),
+    seguranca: segurancaDoDistrito(d),
     furtos_100k: Math.round(furtosPor100k(d))
   };
 });
 
 /* ---------- Estado dos filtros ---------- */
 const estado = {
-  niveis: { baixo: true, medio: true, alto: true },
+  tipo: "aluguel",       // "aluguel" | "compra"
+  segurancaMin: "",       // "" (qualquer) | "alta" | "media" | "baixa"
   raioKm: 5,
-  orcamentoMax: 15000,
+  orcamentoMax: null,     // null = sem limite
   pin: { lat: SP_CENTRO[0], lng: SP_CENTRO[1] }
 };
 
@@ -93,16 +114,16 @@ const camadaDistritos = L.layerGroup().addTo(map);
 function desenharDistritos() {
   camadaDistritos.clearLayers();
   for (const d of window.DISTRITOS) {
-    const nivel = nivelDoDistrito(d);
+    const seg = segurancaDoDistrito(d);
     L.circle([d.lat, d.lng], {
       radius: 900,
-      color: CORES[nivel],
-      fillColor: CORES[nivel],
+      color: CORES[seg],
+      fillColor: CORES[seg],
       fillOpacity: 0.25,
       weight: 1
     })
       .bindTooltip(
-        `<strong>${d.nome}</strong><br>${Math.round(furtosPor100k(d))} furtos/100 mil hab.<br>${ROTULO_NIVEL[nivel]}`
+        `<strong>${d.nome}</strong><br>${Math.round(furtosPor100k(d))} furtos/100 mil hab.<br>${ROTULO_SEG[seg]}`
       )
       .addTo(camadaDistritos);
   }
@@ -123,33 +144,36 @@ const circuloRaio = L.circle(SP_CENTRO, {
   dashArray: "6 6"
 }).addTo(map);
 
-// Camada dos marcadores de imóveis filtrados.
+// Camada dos marcadores de imóveis filtrados (só após Buscar).
 const camadaImoveis = L.layerGroup().addTo(map);
 
+// Arrastar o pin atualiza apenas o visual do raio (não filtra ainda).
 pin.on("drag", (e) => {
   const p = e.target.getLatLng();
   estado.pin = { lat: p.lat, lng: p.lng };
   circuloRaio.setLatLng(p);
 });
-pin.on("dragend", aplicarFiltros);
 
 /* ---------- Aplicação dos filtros ---------- */
 function imovelPassa(im) {
-  // Filtro 1: segurança
-  if (!estado.niveis[im.nivel]) return false;
-  // Filtro 3: orçamento
-  if (im.preco > estado.orcamentoMax) return false;
-  // Filtro 2: localização (raio a partir do pin)
+  // Filtro: tipo de negócio (aluguel / compra)
+  if (im.tipo !== estado.tipo) return false;
+  // Filtro: segurança mínima desejada
+  if (estado.segurancaMin && RANK_SEG[im.seguranca] < RANK_SEG[estado.segurancaMin]) return false;
+  // Filtro: orçamento (caixa float; null = sem limite)
+  if (estado.orcamentoMax !== null && im.preco > estado.orcamentoMax) return false;
+  // Filtro: localização (raio a partir do pin)
   const dist = distanciaKm(estado.pin.lat, estado.pin.lng, im.lat, im.lng);
   if (dist > estado.raioKm) return false;
   im._distPin = dist;
   return true;
 }
 
-function aplicarFiltros() {
-  const filtrados = IMOVEIS.filter(imovelPassa).sort(
-    (a, b) => a._distPin - b._distPin
-  );
+// IMPORTANTE: só roda quando o usuário clica em "Buscar imóveis".
+let jaBuscou = false;
+function buscar() {
+  jaBuscou = true;
+  const filtrados = IMOVEIS.filter(imovelPassa).sort((a, b) => a._distPin - b._distPin);
   renderMarcadores(filtrados);
   renderLista(filtrados);
   document.getElementById("counter").textContent =
@@ -162,16 +186,17 @@ function renderMarcadores(lista) {
   for (const im of lista) {
     const icone = L.divIcon({
       className: "",
-      html: `<div class="pin-imovel ${im.nivel}"></div>`,
+      html: `<div class="pin-imovel ${im.seguranca}"></div>`,
       iconSize: [16, 16],
       iconAnchor: [8, 16]
     });
+    const valorTxt = im.tipo === "aluguel" ? `R$ ${formatBRL(im.preco)} / mês` : `R$ ${formatBRL(im.preco)}`;
     L.marker([im.lat, im.lng], { icon: icone })
       .bindPopup(
         `<strong>${im.titulo}</strong><br>` +
-          `${im.distrito} • ${ROTULO_NIVEL[im.nivel]}<br>` +
+          `${im.distrito} • ${ROTULO_SEG[im.seguranca]}<br>` +
           `${im.furtos_100k} furtos/100 mil hab.<br>` +
-          `<strong>R$ ${formatBRL(im.preco)}</strong> / mês`
+          `<strong>${valorTxt}</strong>`
       )
       .addTo(camadaImoveis);
   }
@@ -182,24 +207,25 @@ function renderLista(lista) {
   const el = document.getElementById("lista");
   if (lista.length === 0) {
     el.innerHTML =
-      '<div class="empty">Nenhum imóvel atende a todos os filtros.<br>Tente aumentar o raio, o orçamento ou incluir mais níveis de segurança.</div>';
+      '<div class="empty">Nenhum imóvel atende a todos os filtros.<br>Tente aumentar o raio, ajustar o orçamento ou reduzir a exigência de segurança.</div>';
     return;
   }
   el.innerHTML = lista
-    .map(
-      (im) => `
-    <article class="imovel-card ${im.nivel}">
-      <span class="badge ${im.nivel}">${ROTULO_NIVEL[im.nivel]} • ${im.furtos_100k}/100 mil</span>
+    .map((im) => {
+      const unidade = im.tipo === "aluguel" ? "<small>/ mês</small>" : "<small>à vista</small>";
+      return `
+    <article class="imovel-card ${im.seguranca}">
+      <span class="badge ${im.seguranca}">${ROTULO_SEG[im.seguranca]} • ${im.furtos_100k}/100 mil</span>
       <h3>${im.titulo}</h3>
       <div class="imovel-meta">
         ${im.distrito} • ${im.quartos} quarto(s) • ${im.area} m² • ${im._distPin.toFixed(1)} km do pin
       </div>
       <div class="card-footer">
-        <span class="imovel-preco">R$ ${formatBRL(im.preco)} <small>/ mês</small></span>
+        <span class="imovel-preco">R$ ${formatBRL(im.preco)} ${unidade}</span>
         <button class="btn-primary" data-id="${im.id}">Tenho interesse</button>
       </div>
-    </article>`
-    )
+    </article>`;
+    })
     .join("");
 
   // Liga os botões "Tenho interesse".
@@ -210,60 +236,73 @@ function renderLista(lista) {
   });
 }
 
-/* ---------- Controles dos filtros ---------- */
-function ligarFiltro(id, nivel) {
-  document.getElementById(id).addEventListener("change", (e) => {
-    estado.niveis[nivel] = e.target.checked;
-    aplicarFiltros();
-  });
-}
-ligarFiltro("lvl-baixo", "baixo");
-ligarFiltro("lvl-medio", "medio");
-ligarFiltro("lvl-alto", "alto");
+/* ---------- Controles dos filtros (NÃO disparam busca) ---------- */
 
+// Toggle lateral aluguel / compra
+const toggle = document.getElementById("toggle-negocio");
+toggle.querySelectorAll(".toggle-opt").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    toggle.querySelectorAll(".toggle-opt").forEach((b) => b.classList.remove("ativo"));
+    btn.classList.add("ativo");
+    estado.tipo = btn.dataset.tipo;
+    // Ajusta o texto de ajuda do orçamento conforme o tipo.
+    document.getElementById("orcamento-hint").textContent =
+      estado.tipo === "aluguel"
+        ? "Valor máximo do aluguel mensal (R$). Deixe em branco para qualquer valor."
+        : "Valor máximo de compra (R$). Deixe em branco para qualquer valor.";
+    document.getElementById("orcamento").placeholder =
+      estado.tipo === "aluguel" ? "Ex.: 3500,00" : "Ex.: 800000,00";
+  });
+});
+
+// Lista de segurança
+document.getElementById("seguranca").addEventListener("change", (e) => {
+  estado.segurancaMin = e.target.value;
+});
+
+// Raio (atualiza visual do círculo na hora; só filtra no Buscar)
 const raio = document.getElementById("raio");
 raio.addEventListener("input", (e) => {
   estado.raioKm = Number(e.target.value);
   document.getElementById("raio-valor").textContent = estado.raioKm;
   circuloRaio.setRadius(estado.raioKm * 1000);
-  aplicarFiltros();
 });
 
-const orcamento = document.getElementById("orcamento");
-orcamento.addEventListener("input", (e) => {
-  estado.orcamentoMax = Number(e.target.value);
-  document.getElementById("orcamento-valor").textContent = formatBRL(estado.orcamentoMax);
-  aplicarFiltros();
+// Orçamento (caixa float)
+document.getElementById("orcamento").addEventListener("input", (e) => {
+  const v = e.target.value.trim();
+  estado.orcamentoMax = v === "" ? null : parseFloat(v.replace(",", "."));
 });
 
+// Reset do pin
 document.getElementById("reset-pin").addEventListener("click", () => {
   pin.setLatLng(SP_CENTRO);
   circuloRaio.setLatLng(SP_CENTRO);
   estado.pin = { lat: SP_CENTRO[0], lng: SP_CENTRO[1] };
   map.setView(SP_CENTRO, 11);
-  aplicarFiltros();
 });
+
+// Botão BUSCAR — único gatilho do output.
+document.getElementById("buscar").addEventListener("click", buscar);
 
 /* ---------- Modal de captura de lead ---------- */
 let imovelSelecionado = null;
 
 function resumoPerfil() {
-  const niveisAtivos = Object.keys(estado.niveis)
-    .filter((n) => estado.niveis[n])
-    .map((n) => ROTULO_NIVEL[n])
-    .join(", ");
   return [
-    `Prioriza segurança: ${niveisAtivos || "nenhum nível selecionado"}`,
+    `Tipo de negócio: ${estado.tipo === "aluguel" ? "Aluguel" : "Compra"}`,
+    `Segurança mínima desejada: ${estado.segurancaMin ? ROTULO_SEG[estado.segurancaMin] : "qualquer"}`,
     `Raio de busca: até ${estado.raioKm} km do ponto de interesse`,
-    `Orçamento máximo: R$ ${formatBRL(estado.orcamentoMax)} / mês`,
+    `Orçamento máximo: ${estado.orcamentoMax === null ? "qualquer valor" : "R$ " + formatBRL(estado.orcamentoMax)}`,
     `Ponto de interesse: ${estado.pin.lat.toFixed(4)}, ${estado.pin.lng.toFixed(4)}`
   ];
 }
 
 function abrirModal(im) {
   imovelSelecionado = im;
+  const valorTxt = im.tipo === "aluguel" ? `R$ ${formatBRL(im.preco)}/mês` : `R$ ${formatBRL(im.preco)}`;
   document.getElementById("modal-imovel").textContent =
-    `${im.titulo} — ${im.distrito} (R$ ${formatBRL(im.preco)}/mês)`;
+    `${im.titulo} — ${im.distrito} (${valorTxt})`;
   const ul = document.getElementById("perfil-resumo");
   ul.innerHTML = resumoPerfil().map((l) => `<li>${l}</li>`).join("");
   document.getElementById("modal-overlay").hidden = false;
@@ -287,7 +326,8 @@ document.getElementById("lead-form").addEventListener("submit", (e) => {
     imovel: imovelSelecionado ? imovelSelecionado.titulo : null,
     imovelId: imovelSelecionado ? imovelSelecionado.id : null,
     perfil: {
-      niveis: { ...estado.niveis },
+      tipo: estado.tipo,
+      segurancaMin: estado.segurancaMin,
       raioKm: estado.raioKm,
       orcamentoMax: estado.orcamentoMax,
       pin: { ...estado.pin }
@@ -315,5 +355,7 @@ function mostrarToast(msg) {
   setTimeout(() => (t.hidden = true), 2800);
 }
 
-/* ---------- Inicialização ---------- */
-aplicarFiltros();
+/* ---------- Estado inicial: SEM resultados até o usuário buscar ---------- */
+document.getElementById("counter").textContent = "Defina os filtros e clique em Buscar";
+document.getElementById("lista").innerHTML =
+  '<div class="empty">👈 Defina seus filtros (tipo, segurança, localização e orçamento) e clique em <strong>Buscar imóveis</strong> para ver os resultados.</div>';
