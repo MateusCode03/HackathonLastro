@@ -1,4 +1,4 @@
-# SeguraSP 🛡️ — Busca de imóveis por segurança
+# Lastro Seguranca — Busca de imóveis por segurança
 
 Ferramenta do **Hackathon Lastro**. É o primeiro filtro de imóveis brasileiro que coloca a **segurança da região** no centro da busca.
 
