@@ -13,6 +13,8 @@
     crossorigin=""
   />
   <link rel="stylesheet" href="css/styles.css" />
+  <!-- Feature Descoberta Visual (pasta descobrir/, isolada) -->
+  <link rel="stylesheet" href="descobrir/descobrir.css" />
 </head>
 <body>
   <!-- ============ BANNER ANÚNCIO ============ -->
@@ -132,6 +134,10 @@
   ></script>
   <script src="data/distritos-sp.js"></script>
   <script src="data/imoveis.js"></script>
+  <!-- Conteúdo editorial da Descoberta Visual (antes do app: só popula window.CONTEUDO_IMOVEIS) -->
+  <script src="descobrir/conteudo-imoveis.js"></script>
   <script src="js/app.js"></script>
+  <!-- Lógica da Descoberta Visual: DEPOIS de app.js (usa estado, buscar, map, pin...) -->
+  <script src="descobrir/descobrir.js"></script>
 </body>
 </html>

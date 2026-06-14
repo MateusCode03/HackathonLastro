@@ -1,0 +1,156 @@
+/* ============================================================
+   Descoberta Visual — estilos (feature isolada, pasta descobrir/)
+   Reaproveita os tokens de css/styles.css (--brand, --alta, etc.).
+   Nada aqui sobrescreve classes existentes: tudo usa prefixo .descobrir-
+   ============================================================ */
+
+/* ---------- Overlay / janela ---------- */
+.descobrir-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 12, 24, .62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200; /* acima do modal de lead (1000) e do toast (1100) */
+  padding: 16px;
+}
+.descobrir-overlay[hidden] { display: none; }
+
+.descobrir-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: min(440px, 94vw);
+  max-height: 92vh;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 24px 70px rgba(0,0,0,.35);
+  display: flex;
+  flex-direction: column;
+}
+.descobrir-fechar {
+  position: absolute; top: 12px; right: 14px;
+  border: none; background: rgba(255,255,255,.85);
+  width: 30px; height: 30px; border-radius: 50%;
+  font-size: 16px; cursor: pointer; color: var(--ink);
+  z-index: 3; line-height: 1;
+}
+.descobrir-fechar:hover { background: #fff; }
+
+/* ---------- Tela de boas-vindas ---------- */
+.descobrir-intro { padding: 28px 26px 26px; text-align: center; }
+.descobrir-intro .selo {
+  display: inline-block;
+  background: #eef2ff; color: var(--brand);
+  font-size: 12px; font-weight: 700;
+  padding: 5px 12px; border-radius: 999px; margin-bottom: 14px;
+}
+.descobrir-intro h2 { margin: 0 0 8px; font-size: 22px; }
+.descobrir-intro p { margin: 0 0 22px; font-size: 14px; color: var(--muted); line-height: 1.5; }
+.descobrir-intro .acoes-intro { display: flex; flex-direction: column; gap: 10px; }
+
+.descobrir-btn-primario,
+.descobrir-btn-secundario {
+  border: none; cursor: pointer; font-weight: 700;
+  border-radius: 10px; padding: 13px; font-size: 15px;
+  transition: background .15s;
+}
+.descobrir-btn-primario { background: var(--brand); color: #fff; box-shadow: var(--shadow); }
+.descobrir-btn-primario:hover { background: #0f2350; }
+.descobrir-btn-secundario { background: #eef2f7; color: var(--ink); }
+.descobrir-btn-secundario:hover { background: #e2e8f0; }
+
+/* ---------- Deck de swipe ---------- */
+.descobrir-deck { display: none; flex-direction: column; }
+.descobrir-deck.ativo { display: flex; }
+
+.descobrir-progresso {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px 0; font-size: 13px; color: var(--muted);
+}
+.descobrir-progresso .curtidas { color: var(--alta); font-weight: 700; }
+
+.descobrir-barra { height: 5px; background: #eef2f7; border-radius: 999px; margin: 8px 18px 0; overflow: hidden; }
+.descobrir-barra > i { display: block; height: 100%; width: 0; background: var(--brand); transition: width .25s; }
+
+/* Card (placeholder visual CSS/SVG — sem foto real) */
+.descobrir-card {
+  margin: 14px 18px 0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+}
+.descobrir-card-img {
+  height: 190px;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+}
+/* Gradiente por nível de segurança (placeholder de "foto") */
+.descobrir-card-img.alta  { background: linear-gradient(135deg, #14b86a 0%, #0e7a48 100%); }
+.descobrir-card-img.media { background: linear-gradient(135deg, #f0b429 0%, #b9791b 100%); }
+.descobrir-card-img.baixa { background: linear-gradient(135deg, #e25555 0%, #a32b2b 100%); }
+.descobrir-card-icone { font-size: 70px; opacity: .92; filter: drop-shadow(0 4px 8px rgba(0,0,0,.25)); }
+.descobrir-card-img .badge {
+  position: absolute; top: 12px; left: 12px; margin: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,.25);
+}
+
+.descobrir-card-info { padding: 14px 16px 16px; background: #fff; }
+.descobrir-card-info h3 { margin: 0 0 6px; font-size: 17px; }
+.descobrir-card-desc { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); line-height: 1.45; min-height: 38px; }
+.descobrir-card-meta {
+  display: flex; flex-wrap: wrap; gap: 6px 14px;
+  font-size: 13px; color: var(--ink); margin-bottom: 10px;
+}
+.descobrir-card-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.descobrir-card-preco { font-size: 20px; font-weight: 800; color: var(--brand); }
+.descobrir-card-preco small { font-size: 12px; font-weight: 400; color: var(--muted); }
+
+/* Ações curtir / descartar */
+.descobrir-acoes {
+  display: flex; gap: 14px; justify-content: center;
+  padding: 16px 18px;
+}
+.descobrir-acoes button {
+  width: 60px; height: 60px; border-radius: 50%;
+  border: 2px solid var(--line); background: #fff;
+  font-size: 26px; cursor: pointer; line-height: 1;
+  box-shadow: var(--shadow); transition: transform .12s, border-color .12s;
+}
+.descobrir-acoes button:hover { transform: translateY(-2px); }
+.descobrir-acoes .descartar:hover { border-color: var(--baixa); }
+.descobrir-acoes .curtir:hover { border-color: var(--alta); }
+
+.descobrir-ver-recs {
+  margin: 0 18px 18px;
+  background: var(--brand); color: #fff;
+  border: none; border-radius: 10px; padding: 12px;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.descobrir-ver-recs:disabled { background: #c3ccda; cursor: not-allowed; }
+.descobrir-ver-recs:not(:disabled):hover { background: #0f2350; }
+
+/* Animação de saída do card ao curtir/descartar */
+.descobrir-card.sai-direita { animation: descobrir-fly-right .28s forwards; }
+.descobrir-card.sai-esquerda { animation: descobrir-fly-left .28s forwards; }
+@keyframes descobrir-fly-right {
+  to { transform: translateX(120%) rotate(8deg); opacity: 0; }
+}
+@keyframes descobrir-fly-left {
+  to { transform: translateX(-120%) rotate(-8deg); opacity: 0; }
+}
+
+/* ---------- Botão flutuante de reabrir ---------- */
+.descobrir-reabrir {
+  position: fixed;
+  bottom: 22px; right: 22px;
+  z-index: 900;
+  background: var(--brand); color: #fff;
+  border: none; border-radius: 999px;
+  padding: 12px 18px; font-size: 14px; font-weight: 700;
+  cursor: pointer; box-shadow: 0 6px 18px rgba(20,48,107,.35);
+}
+.descobrir-reabrir:hover { background: #0f2350; }
+.descobrir-reabrir[hidden] { display: none; }

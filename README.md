@@ -23,6 +23,16 @@ Os filtros são aplicados em conjunto. **O resultado só aparece quando o usuár
 
 Ao clicar em **"Tenho interesse"**, o sistema registra o lead **junto com o perfil de busca** (tipo, segurança, raio, orçamento e ponto) — entregando à imobiliária um lead com **perfil já mapeado**.
 
+## ✨ Descoberta Visual (onboarding por imagens)
+
+Para quem não sabe por onde começar, ao abrir o site aparece uma **janela de descoberta**:
+
+1. **"Descobrir pelas imagens"** → mostra imóveis **um a um** (estilo *swipe*), cada um com imagem-placeholder, **descrição, localização, preço e quantidade de quartos**. Você **curte (❤️)** ou **descarta (✕)**.
+2. A partir das curtidas, a Lastro infere seu perfil e mostra **imóveis em regiões e valores parecidos** — reutilizando a mesma lista e mapa da busca normal (via o botão Buscar internamente).
+3. Prefere o jeito clássico? **"Prefiro usar os filtros"** fecha a janela e o fluxo manual continua igual. O botão flutuante **"✨ Descobrir meu imóvel"** reabre a descoberta quando quiser.
+
+O perfil montado nas curtidas também é salvo (`localStorage` → `segurasp_preferencias`) como valor extra para a imobiliária. Toda essa feature vive isolada na pasta [descobrir/](descobrir/) e **não altera** o código principal — veja o backlog em [descobrir/BACKLOG.md](descobrir/BACKLOG.md).
+
 ## 🧮 Como o nível de segurança é calculado
 
 ```
@@ -65,6 +75,11 @@ HackathonLastro/
 ├── data/
 │   ├── distritos-sp.js   # distritos de SP: população, furtos, furto/100k
 │   └── imoveis.js        # catálogo simulado de imóveis
+├── descobrir/            # feature Descoberta Visual (isolada, não altera o núcleo)
+│   ├── descobrir.js      # janela + swipe + motor de recomendação (usa buscar())
+│   ├── descobrir.css     # estilos da janela e dos cards
+│   ├── conteudo-imoveis.js # descrições dos imóveis (window.CONTEUDO_IMOVEIS)
+│   └── BACKLOG.md        # backlog em formato Notion
 ├── main.py               # servidor local opcional
 ├── README.md
 └── CLAUDE.md             # guia técnico do projeto (memória para devs)
