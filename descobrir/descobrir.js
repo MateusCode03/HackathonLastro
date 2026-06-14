@@ -2,46 +2,94 @@
    Descoberta Visual de Imóveis — lógica (feature isolada)
    ------------------------------------------------------------
    Onboarding em estilo "swipe": ao abrir o site, o usuário pode
-   descobrir o imóvel pelas imagens (cards placeholder com descrição,
-   localização, preço e quartos) OU fechar e usar os filtros manuais.
-   A partir das curtidas, infere o perfil e mostra imóveis de REGIÃO e
-   VALOR parecidos REUTILIZANDO a busca existente (buscar() de app.js).
+   descobrir o imóvel pelas imagens (curtir ❤️ / descartar ✕) ou
+   fechar e usar os filtros manuais. A partir das curtidas, infere
+   o perfil e mostra imóveis de REGIÃO e VALOR parecidos via buscar().
 
-   IMPORTANTE: este arquivo é carregado DEPOIS de js/app.js e só LÊ/USA
-   os globais já existentes (IMOVEIS, estado, buscar, pin, circuloRaio,
-   map, formatBRL, distanciaKm, ROTULO_SEG, mostrarToast). NÃO modifica
-   nenhuma função existente — apenas dirige o fluxo e dispara buscar().
+   Imagens: pasta descobrir/img/  — nomenclatura por tier de preço:
+     pobre_N.jpg  → aluguel ≤ R$1.000  | compra ≤ R$60.000
+     medio_N.jpg  → aluguel R$1.001–1.999 | compra R$80.001–200.000
+     rico_N.jpg   → aluguel ≥ R$2.000  | compra > R$200.000
+   Se a imagem não carregar, exibe gradiente CSS como fallback.
+
+   IMPORTANTE: carregado DEPOIS de js/app.js — usa os globais
+   (IMOVEIS, estado, buscar, pin, circuloRaio, map, formatBRL,
+   distanciaKm, ROTULO_SEG, mostrarToast) sem modificar nenhum deles.
    ============================================================ */
 (function () {
   "use strict";
 
-  // Se o app principal não carregou (ordem de scripts errada), aborta em silêncio.
   if (typeof IMOVEIS === "undefined" || typeof buscar !== "function") {
     console.warn("[descobrir] app.js não carregou antes — feature desativada.");
     return;
   }
 
   var CONTEUDO = window.CONTEUDO_IMOVEIS || {};
-  var TOTAL_CARDS = Math.min(10, IMOVEIS.length); // quantos cards no deck
-  var MARGEM_RAIO_KM = 1;   // folga no raio para cobrir os curtidos
-  var FATOR_ORCAMENTO = 1.2; // teto = 1,2x o maior preço curtido
+  var IMG_DIR = "descobrir/img/";
+  var MARGEM_RAIO_KM = 1;
+  var FATOR_ORCAMENTO = 1.2;
 
-  /* ---------- Utilidades ---------- */
+  /* ---------- Catálogo de imagens por tier ----------
+     Adicione mais arquivos ao array para ampliar o deck.
+     O deck mostrará no máximo um card por imagem disponível.
+  ---------------------------------------------------- */
+  var IMGS_TIER = {
+    pobre: ["pobre_1.jpg", "pobre_2.jpg"],
+    medio: ["medio_1.jpg", "medio_2.jpg"],
+    rico:  ["rico_1.jpg", "rico_2.jpg", "rico_3.jpg", "rico_4.jpg", "rico_5.jpg"]
+  };
 
-  // Descrição: usa a editorial (conteudo-imoveis.js) ou gera uma a partir dos dados.
+  /* ---------- Tier de preço de um imóvel ---------- */
+  function tierDe(im) {
+    if (im.tipo === "aluguel") {
+      if (im.preco <= 1000) return "pobre";
+      if (im.preco < 2000)  return "medio";
+      return "rico";
+    }
+    // compra
+    if (im.preco <= 60000)  return "pobre";
+    if (im.preco <= 200000) return "medio";
+    return "rico";
+  }
+
+  /* ---------- Monta o deck: máx. 1 card por imagem disponível ----------
+     Garante que cada imagem de um tier seja usada no máximo uma vez.
+     O deck é embaralhado para variar a ordem a cada visita.
+  ---------------------------------------------------------------------- */
+  function montarDeck() {
+    var usados = { pobre: 0, medio: 0, rico: 0 };
+    var embaralhados = embaralhar(IMOVEIS);
+    var deck = [];
+    for (var i = 0; i < embaralhados.length; i++) {
+      var im = embaralhados[i];
+      var tier = tierDe(im);
+      if (usados[tier] < IMGS_TIER[tier].length) {
+        // Clona para não poluir o objeto global com _imgIdx
+        var card = Object.assign({}, im, { _tier: tier, _imgIdx: usados[tier] });
+        usados[tier]++;
+        deck.push(card);
+      }
+      // Encerra quando todos os tiers estão esgotados
+      var totalDisp = IMGS_TIER.pobre.length + IMGS_TIER.medio.length + IMGS_TIER.rico.length;
+      if (deck.length >= totalDisp) break;
+    }
+    return deck;
+  }
+
+  /* ---------- Utilidades visuais ---------- */
+
   function descricaoDe(im) {
     if (CONTEUDO[im.id] && CONTEUDO[im.id].descricao) return CONTEUDO[im.id].descricao;
     return im.titulo + ": " + im.quartos + " quarto(s), " + im.area +
       " m² em " + im.distrito + " (" + ROTULO_SEG[im.seguranca].toLowerCase() + ").";
   }
 
-  // Ícone-placeholder por tipo de moradia (sem foto real).
-  function iconeDe(im) {
+  function iconeFallback(im) {
     var t = im.titulo.toLowerCase();
-    if (t.indexOf("casa") === 0 || t.indexOf("casa ") === 0) return "🏡";
+    if (t.indexOf("casa") === 0)   return "🏡";
     if (t.indexOf("cobertura") !== -1) return "🏙️";
     if (t.indexOf("studio") !== -1 || t.indexOf("kitnet") !== -1 ||
-        t.indexOf("loft") !== -1 || t.indexOf("flat") !== -1) return "🛋️";
+        t.indexOf("loft") !== -1   || t.indexOf("flat") !== -1) return "🛋️";
     return "🏢";
   }
 
@@ -51,7 +99,6 @@
       : "R$ " + formatBRL(im.preco) + " <small>à vista</small>";
   }
 
-  // Embaralha uma cópia do array (Fisher–Yates).
   function embaralhar(arr) {
     var a = arr.slice();
     for (var i = a.length - 1; i > 0; i--) {
@@ -85,14 +132,14 @@
       // Tela 2: deck de swipe
       '<div class="descobrir-deck" id="descobrir-deck">' +
         '<div class="descobrir-progresso">' +
-          '<span id="descobrir-contagem">Imóvel 1 de ' + TOTAL_CARDS + '</span>' +
+          '<span id="descobrir-contagem">—</span>' +
           '<span class="curtidas">❤️ <span id="descobrir-ncurtidas">0</span> curtido(s)</span>' +
         '</div>' +
         '<div class="descobrir-barra"><i id="descobrir-barra"></i></div>' +
         '<div id="descobrir-card-slot"></div>' +
         '<div class="descobrir-acoes">' +
           '<button class="descartar" id="descobrir-descartar" type="button" aria-label="Descartar">✕</button>' +
-          '<button class="curtir" id="descobrir-curtir" type="button" aria-label="Curtir">❤️</button>' +
+          '<button class="curtir"   id="descobrir-curtir"    type="button" aria-label="Curtir">❤️</button>' +
         '</div>' +
         '<button class="descobrir-ver-recs" id="descobrir-ver-recs" type="button" disabled>Ver recomendações</button>' +
       '</div>' +
@@ -100,7 +147,6 @@
     '</div>';
   document.body.appendChild(overlay);
 
-  // Botão flutuante para reabrir a descoberta.
   var btnReabrir = document.createElement("button");
   btnReabrir.className = "descobrir-reabrir";
   btnReabrir.id = "descobrir-reabrir";
@@ -109,36 +155,34 @@
   btnReabrir.hidden = true;
   document.body.appendChild(btnReabrir);
 
-  // Atalhos para elementos.
-  var elIntro = document.getElementById("descobrir-intro");
-  var elDeck = document.getElementById("descobrir-deck");
-  var elSlot = document.getElementById("descobrir-card-slot");
-  var elContagem = document.getElementById("descobrir-contagem");
+  var elIntro     = document.getElementById("descobrir-intro");
+  var elDeck      = document.getElementById("descobrir-deck");
+  var elSlot      = document.getElementById("descobrir-card-slot");
+  var elContagem  = document.getElementById("descobrir-contagem");
   var elNcurtidas = document.getElementById("descobrir-ncurtidas");
-  var elBarra = document.getElementById("descobrir-barra");
-  var elVerRecs = document.getElementById("descobrir-ver-recs");
+  var elBarra     = document.getElementById("descobrir-barra");
+  var elVerRecs   = document.getElementById("descobrir-ver-recs");
 
   /* ---------- Estado do deck ---------- */
   var baralho = [];
-  var indice = 0;
+  var indice  = 0;
   var curtidos = [];
 
-  /* ---------- Abertura / fechamento da janela ---------- */
+  /* ---------- Abertura / fechamento ---------- */
   function abrirJanela() {
-    // Reinicia para a tela de boas-vindas.
     elDeck.classList.remove("ativo");
     elIntro.style.display = "";
     overlay.hidden = false;
   }
   function fecharJanela() {
     overlay.hidden = true;
-    btnReabrir.hidden = false; // libera o botão flutuante
+    btnReabrir.hidden = false;
   }
 
   /* ---------- Deck de swipe ---------- */
   function iniciarDeck() {
-    baralho = embaralhar(IMOVEIS).slice(0, TOTAL_CARDS);
-    indice = 0;
+    baralho  = montarDeck();
+    indice   = 0;
     curtidos = [];
     elNcurtidas.textContent = "0";
     elVerRecs.disabled = true;
@@ -149,15 +193,24 @@
 
   function renderCard() {
     if (indice >= baralho.length) { finalizar(); return; }
-    var im = baralho[indice];
-    elContagem.textContent = "Imóvel " + (indice + 1) + " de " + baralho.length;
-    elBarra.style.width = ((indice / baralho.length) * 100) + "%";
+    var im    = baralho[indice];
+    var total = baralho.length;
+    elContagem.textContent = "Imóvel " + (indice + 1) + " de " + total;
+    elBarra.style.width = ((indice / total) * 100) + "%";
+
+    var imgSrc = IMG_DIR + IMGS_TIER[im._tier][im._imgIdx];
 
     elSlot.innerHTML =
       '<article class="descobrir-card" id="descobrir-card">' +
         '<div class="descobrir-card-img ' + im.seguranca + '">' +
+          // Imagem local (fallback: gradiente + emoji via onerror)
+          '<img class="descobrir-card-foto"' +
+               ' src="' + imgSrc + '"' +
+               ' alt="' + im.titulo + '"' +
+               ' onerror="this.style.display=\'none\'"' +
+          '/>' +
           '<span class="badge ' + im.seguranca + '">' + ROTULO_SEG[im.seguranca] + '</span>' +
-          '<span class="descobrir-card-icone">' + iconeDe(im) + '</span>' +
+          '<span class="descobrir-card-icone">' + iconeFallback(im) + '</span>' +
         '</div>' +
         '<div class="descobrir-card-info">' +
           '<h3>' + im.titulo + '</h3>' +
@@ -180,22 +233,16 @@
     }
     var card = document.getElementById("descobrir-card");
     if (card) card.classList.add(curtiu ? "sai-direita" : "sai-esquerda");
-
     indice++;
-    // Aguarda a animação antes de trocar o card.
     setTimeout(function () { renderCard(); }, 220);
   }
 
   function finalizar() {
-    if (curtidos.length === 0) {
-      // Sem curtidas: volta à intro para o usuário escolher de novo.
-      abrirJanela();
-      return;
-    }
+    if (curtidos.length === 0) { abrirJanela(); return; }
     gerarRecomendacoes(curtidos);
   }
 
-  /* ---------- Motor de recomendação (regiões + valores parecidos) ---------- */
+  /* ---------- Motor de recomendação ---------- */
   function tipoDominante(lista) {
     var aluguel = 0, compra = 0;
     lista.forEach(function (im) { im.tipo === "aluguel" ? aluguel++ : compra++; });
@@ -204,16 +251,13 @@
 
   function gerarRecomendacoes(lista) {
     var tipo = tipoDominante(lista);
-    // Considera só os curtidos do tipo dominante (não misturar aluguel/compra).
     var base = lista.filter(function (im) { return im.tipo === tipo; });
     if (base.length === 0) base = lista;
 
-    // Centróide das regiões curtidas.
     var lat = 0, lng = 0;
     base.forEach(function (im) { lat += im.lat; lng += im.lng; });
     lat /= base.length; lng /= base.length;
 
-    // Raio = maior distância do centróide a um curtido (+ margem), limitado 3–20 km.
     var maxDist = 0;
     base.forEach(function (im) {
       var d = distanciaKm(lat, lng, im.lat, im.lng);
@@ -221,7 +265,6 @@
     });
     var raio = Math.min(20, Math.max(3, Math.ceil(maxDist) + MARGEM_RAIO_KM));
 
-    // Orçamento = 1,2x o maior preço curtido (valores parecidos).
     var maxPreco = 0;
     base.forEach(function (im) { if (im.preco > maxPreco) maxPreco = im.preco; });
     var orcamento = Math.round(maxPreco * FATOR_ORCAMENTO);
@@ -230,37 +273,30 @@
     salvarPreferencias(tipo, lat, lng, raio, orcamento, lista);
 
     fecharJanela();
-    buscar(); // único gatilho do output — reutiliza lista + mapa existentes
+    buscar();
     if (typeof mostrarToast === "function") {
       mostrarToast("✨ Recomendações geradas a partir das suas curtidas!");
     }
   }
 
-  // Escreve o perfil no estado + UI reusando os handlers existentes de app.js.
   function aplicarPerfil(tipo, lat, lng, raio, orcamento) {
-    // Tipo: clicar no toggle reaproveita o handler (ajusta estado.tipo + hints).
     var optTipo = document.querySelector('.toggle-opt[data-tipo="' + tipo + '"]');
     if (optTipo && !optTipo.classList.contains("ativo")) optTipo.click();
 
-    // Ponto de interesse: reposiciona pin, círculo e mapa.
     estado.pin = { lat: lat, lng: lng };
     pin.setLatLng([lat, lng]);
     circuloRaio.setLatLng([lat, lng]);
     map.setView([lat, lng], 12);
 
-    // Raio: dispara o handler 'input' para sincronizar estado + visual.
     var raioEl = document.getElementById("raio");
     raioEl.value = raio;
     raioEl.dispatchEvent(new Event("input"));
 
-    // Orçamento: idem.
     var orcEl = document.getElementById("orcamento");
     orcEl.value = orcamento;
     orcEl.dispatchEvent(new Event("input"));
   }
 
-  // Persiste o perfil de preferências (valor extra p/ a imobiliária).
-  // Chave própria — NÃO toca em "segurasp_leads".
   function salvarPreferencias(tipo, lat, lng, raio, orcamento, lista) {
     try {
       var pref = {
@@ -279,7 +315,7 @@
     }
   }
 
-  /* ---------- Ligações de eventos ---------- */
+  /* ---------- Eventos ---------- */
   document.getElementById("descobrir-comecar").addEventListener("click", iniciarDeck);
   document.getElementById("descobrir-pular").addEventListener("click", fecharJanela);
   document.getElementById("descobrir-fechar").addEventListener("click", fecharJanela);
@@ -287,12 +323,9 @@
   document.getElementById("descobrir-curtir").addEventListener("click", function () { avancar(true); });
   elVerRecs.addEventListener("click", function () { finalizar(); });
   btnReabrir.addEventListener("click", abrirJanela);
-
-  // Fecha ao clicar fora da janela.
   overlay.addEventListener("click", function (e) {
     if (e.target === overlay) fecharJanela();
   });
 
-  /* ---------- Abre a janela ao carregar ---------- */
   abrirJanela();
 })();
