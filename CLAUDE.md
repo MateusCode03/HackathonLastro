@@ -37,12 +37,20 @@ HackathonLastro/
 ├── data/
 │   ├── distritos-sp.js   # window.DISTRITOS (segurança por distrito)
 │   └── imoveis.js        # window.IMOVEIS (catálogo simulado)
+├── descobrir/            # feature "Descoberta Visual" (isolada — ver seção 9)
+│   ├── descobrir.js      # janela de onboarding + swipe + recomendação
+│   ├── descobrir.css     # estilos da feature (prefixo .descobrir-)
+│   ├── conteudo-imoveis.js # window.CONTEUDO_IMOVEIS (descrições por id)
+│   └── BACKLOG.md        # backlog em formato Notion
 ├── main.py               # servidor local opcional (python main.py)
 ├── README.md             # apresentação do projeto
 └── CLAUDE.md             # este arquivo
 ```
 A **ordem de carregamento dos scripts** no `index.html` importa:
-Leaflet → distritos-sp.js → imoveis.js → app.js (o app depende dos dados e do Leaflet).
+Leaflet → distritos-sp.js → imoveis.js → **conteudo-imoveis.js** → app.js → **descobrir.js**.
+`descobrir.js` é sempre o ÚLTIMO porque depende dos globais criados por `app.js`
+(`estado`, `buscar`, `map`, `pin`, `circuloRaio`...). Já `conteudo-imoveis.js` é
+independente e só popula `window.CONTEUDO_IMOVEIS`.
 
 ## 3. Os filtros (regra de negócio)
 
@@ -124,3 +132,40 @@ Checklist de teste end-to-end:
 - Polígonos reais dos distritos (GeoJSON IBGE) no lugar dos círculos.
 - Painel da imobiliária para ver os leads capturados.
 - Integração com catálogo real de imóveis.
+
+## 9. Descoberta Visual (pasta `descobrir/`)
+
+Feature de **onboarding por imagens**: ao abrir o site, uma janela deixa o usuário
+**descobrir o imóvel curtindo cards** (estilo *swipe*) OU fechar e usar os filtros
+manuais. A partir das curtidas, recomenda imóveis de **região e valor parecidos**.
+
+### Princípio de isolamento (IMPORTANTE)
+Toda a feature vive em `descobrir/`. **Nada em `js/`, `css/` ou `data/` foi
+alterado.** A única interligação são 3 linhas no `index.html` (1 `<link>` + 2
+`<script>`). `descobrir.js` apenas **lê e dirige** os globais já existentes —
+não modifica nenhuma função de `app.js`.
+
+### Como reaproveita o núcleo (`app.js`)
+Por serem declarações de topo em scripts clássicos, ficam acessíveis ao
+`descobrir.js` (carregado depois): `IMOVEIS`, `estado`, `buscar()`, `formatBRL`,
+`distanciaKm`, `ROTULO_SEG`, `mostrarToast` e os objetos Leaflet `map`, `pin`,
+`circuloRaio`. Para aplicar o perfil inferido, o `descobrir.js`:
+- **clica** no `.toggle-opt` do tipo dominante (reusa o handler de `app.js`);
+- escreve `estado.pin` e reposiciona `pin`/`circuloRaio`/`map`;
+- seta `#raio` e `#orcamento` e **dispara `input`** (reusa os handlers existentes);
+- por fim chama **`buscar()`** — mantendo a regra de que o output só sai via Buscar.
+
+### Motor de recomendação (`gerarRecomendacoes`)
+A partir dos curtidos (do tipo dominante, sem misturar aluguel/compra): tipo = mais
+frequente; ponto = **centróide** das regiões curtidas; raio = maior distância aos
+curtidos + margem (limitado 3–20 km); orçamento = **1,2×** o maior preço curtido.
+
+### Dados e persistência
+- Descrições dos cards: `window.CONTEUDO_IMOVEIS` (`descobrir/conteudo-imoveis.js`),
+  com fallback gerado em runtime (`descricaoDe`) para ids sem entrada.
+- Imagens são **placeholders CSS/SVG** (gradiente por segurança + emoji por tipo),
+  100% offline — não há foto real nos dados.
+- O perfil curtido é salvo em `localStorage` na chave **`segurasp_preferencias`**
+  (chave própria; **não** mexe em `segurasp_leads`).
+
+> Backlog detalhado (formato Notion) em `descobrir/BACKLOG.md`.

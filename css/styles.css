@@ -42,29 +42,21 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(90deg, #0d2a33 0%, #0b1424 45%, #0a0e17 100%);
+  background: linear-gradient(90deg, #2a1f5e 0%, #1a1035 55%, #100c28 100%);
   color: #fff;
   padding: 14px 24px;
 }
-.brand { display: flex; align-items: center; gap: 14px; }
-.logo-ring {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  border: 3px dotted #19e3c0;
-  display: flex; align-items: center; justify-content: center;
+.brand { display: flex; align-items: center; gap: 16px; }
+.topbar-logo {
+  height: 38px;
+  display: block;
   flex-shrink: 0;
 }
-.logo-dot {
-  width: 9px; height: 9px;
-  background: #19e3c0;
-  border-radius: 50%;
-}
-.topbar h1 { margin: 0; font-size: 23px; font-weight: 700; letter-spacing: .3px; }
-.tagline { margin: 2px 0 0; font-size: 13px; color: #9aa7b5; }
+.tagline { margin: 0; font-size: 13px; color: #b8aee0; }
 .tagline strong { color: #e2e8f0; }
 .counter {
-  background: #19e3c0;
-  color: #07242a;
+  background: #7c3aed;
+  color: #fff;
   padding: 9px 20px;
   border-radius: 999px;
   font-weight: 700;
