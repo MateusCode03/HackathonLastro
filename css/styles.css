@@ -24,24 +24,50 @@ body {
   color: var(--ink);
 }
 
+/* ---------- Banner anúncio ---------- */
+.announce-bar {
+  background: linear-gradient(90deg, #19e3c0 0%, #0bbfa6 30%, #0a8f9e 60%, #0a1428 100%);
+  color: #07242a;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  padding: 9px 16px;
+}
+.announce-bar strong { font-weight: 700; }
+.announce-bar a { color: #07242a; font-weight: 700; text-decoration: none; margin-left: 6px; }
+.announce-bar a:hover { text-decoration: underline; }
+
 /* ---------- Topbar ---------- */
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--brand);
+  background: linear-gradient(90deg, #0d2a33 0%, #0b1424 45%, #0a0e17 100%);
   color: #fff;
-  padding: 12px 20px;
+  padding: 14px 24px;
 }
-.brand { display: flex; align-items: center; gap: 12px; }
-.logo { font-size: 30px; }
-.topbar h1 { margin: 0; font-size: 22px; letter-spacing: .5px; }
-.tagline { margin: 2px 0 0; font-size: 13px; opacity: .85; }
+.brand { display: flex; align-items: center; gap: 14px; }
+.logo-ring {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 3px dotted #19e3c0;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.logo-dot {
+  width: 9px; height: 9px;
+  background: #19e3c0;
+  border-radius: 50%;
+}
+.topbar h1 { margin: 0; font-size: 23px; font-weight: 700; letter-spacing: .3px; }
+.tagline { margin: 2px 0 0; font-size: 13px; color: #9aa7b5; }
+.tagline strong { color: #e2e8f0; }
 .counter {
-  background: rgba(255,255,255,.15);
-  padding: 8px 16px;
+  background: #19e3c0;
+  color: #07242a;
+  padding: 9px 20px;
   border-radius: 999px;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
   white-space: nowrap;
 }
@@ -52,7 +78,7 @@ body {
   grid-template-columns: 300px 1fr 340px;
   gap: 14px;
   padding: 14px;
-  height: calc(100vh - 64px);
+  height: calc(100vh - 104px); /* desconta banner (~36px) + topbar (~68px) */
 }
 @media (max-width: 1100px) {
   .layout { grid-template-columns: 1fr; height: auto; }
